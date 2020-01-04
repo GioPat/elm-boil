@@ -11,6 +11,11 @@ const IndexNotExistError = require('./utils/errors');
 var tmpPath      =path.join(__dirname, './../tmp/');
 var templatePath =path.join(__dirname, './../template');
 
+const Operations = {
+  SERVE: "serve",
+  BUILD: "build",
+};
+
 const defaultIndexJs = `<!DOCTYPE HTML>
 <html>
 <head>
@@ -57,6 +62,15 @@ require('yargs')
   }, (argv) => {
     handleServe(argv.host, argv.port);
   })
+  .command('build', ' build the project', (yargs) => {
+    yargs
+      .option('output', {
+        alias: 'o',
+        default: 'dist'
+      })
+  }, (argv) => {
+    handleBuild(argv.output);
+  })
 .argv;
 
 
@@ -87,27 +101,23 @@ function checkBoiledElm() {
   }
 }
 
-
 /**
- * Serves an Elm boiled project in the current working directory for a development
- * environment
- * @param {string} [host="0.0.0.0"] 
- * @param {int} [port=3000]
+ * Performs serve or build function checking the folder
+ * @param {string=Operations.BUILD|Operations.SERVE} [operation=Operations.SERVE] 
+ * - operation to be perfomed
+ * @param {string} path - Working process path
+ * @param {string} host - Host, in case of serve
+ * @param {string} port - Port, in case of serve
  */
-function handleServe(host, port) {
-  var host = host || "0.0.0.0";
-  var port = port || 3000;
-  var nowTimestamp = new Date().getTime().toString();
-  var servingPath = tmpPath + nowTimestamp;
-  fs.readdirSync(tmpPath, { withFileTypes: true})
-    .filter(dirent => dirent.isDirectory())
-    .map((dirent) => {
-      fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
-    });
+function perform(operation, path, host, port) {
+  operation = operation || Operations.SERVE;
   try {
     checkBoiledElm();
-    fs.mkdirSync(servingPath, {recursive: true});
-    gulpfunc.serve(servingPath, host, port);
+    (operation === Operations.BUILD) ? (
+      gulpfunc.build(path)
+    ) : (
+      gulpfunc.serve(path, host, port)
+    );
   }
   catch(error) {
     if(error.name === "IndexNotExistsError") {
@@ -129,10 +139,13 @@ function handleServe(host, port) {
             }
           )
           log.info("Index file created successfully");
-          fs.mkdirSync(servingPath, {recursive: true});
-          gulpfunc.serve(servingPath, host, port);
+          (operation === Operations.BUILD) ? (
+            gulpfunc.build(path)
+          ) : (
+            gulpfunc.serve(path, hsot, port)
+          );
         } else {
-          log.error("Project cannot be served without public/index.html file");
+          log.error(`Can't perform a ${operation} without public/index.html file`);
           return;
         }
       })
@@ -143,4 +156,33 @@ function handleServe(host, port) {
   }
 }
 
+/**
+ * Serves an Elm boiled project in the current working directory for a development
+ * environment
+ * @param {string} [host="0.0.0.0"] 
+ * @param {int} [port=3000]
+ */
+function handleServe(host, port) {
+  var host = host || "0.0.0.0";
+  var port = port || 3000;
+  var nowTimestamp = new Date().getTime().toString();
+  var servingPath = tmpPath + nowTimestamp;
+  fs.readdirSync(tmpPath, { withFileTypes: true})
+    .filter(dirent => dirent.isDirectory())
+    .map((dirent) => {
+      fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
+    });
+  
+  perform(Operations.SERVE, servingPath, host, port);
+  return;
+}
+
+/**
+ * Creates an optimized Elm build in the specified directory
+ * @param {string} [outputDir="dist"]
+ */
+function handleBuild(outputDir) {
+  log.info("Building project in ./" + outputDir);
+  perform(Operations.BUILD, outputDir);
+}
 

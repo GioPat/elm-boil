@@ -5,9 +5,11 @@ var uglify = require("gulp-uglify");
 var Vinyl = require("vinyl");
 var inject = require("gulp-inject");
 var concat = require("gulp-concat");
-var hash = require("gulp-hash");
+var hash = require("gulp-hash-filename");
+var open = require('open');
 var cleanCss = require("gulp-clean-css"); 
-var del = require("del");
+var fs = require("fs");
+var path = require('path');
 var log = require("./src/utils/log");
 var connect = require("gulp-connect");
 var paths = {
@@ -99,7 +101,6 @@ function elmRelease(cb, dist) {
           pure_getters: true,
           keep_fargs: false,
           unsafe_comps: true,
-          warnings: false,
           drop_console: true,
           unsafe: true,
         },
@@ -113,7 +114,9 @@ function elmRelease(cb, dist) {
         mangle: true,
       })
     )
-    .pipe(hash())
+    .pipe(hash({
+      format: "{name}.{hash:10}{ext}"
+    }))
     .pipe(gulp.dest(dist))
     .on("end", function() { cb(); });
 }
@@ -135,17 +138,19 @@ function indexRelease(cb, dist) {
   var distJs = dist + "/**/*.js";
   var css = gulp.src(distCss);
   var js = gulp.src(distJs);
-  string_src("index.html", indexJs)
+  gulp.src(paths.pubIndex, {cwd: process.cwd()})
     .pipe(gulp.dest(dist))
-    .pipe(inject(css, { relative: true }))
-    .pipe(inject(js, { relative: true }))
+    .pipe(inject(css, { relative: true, quiet: true }))
+    .pipe(inject(js, { relative: true, quiet: true }))
     .pipe(gulp.dest(dist))
     .on("end", function() { cb(); });
 }
 
 function hashCss(cb, dist) {
   gulp.src(dist + "/" + "style.min.css")
-    .pipe(hash())
+    .pipe(hash({
+      format: "{name}.{hash:10}{ext}"
+    }))
     .pipe(gulp.dest(dist))
     .on("end", function() {
       cb();
@@ -153,16 +158,15 @@ function hashCss(cb, dist) {
 }
 
 function delCss(dist) {
-  del(dist + "/" + "style.min.css", {froce: true});
+  fs.unlinkSync(path.join(process.cwd(), dist, "style.min.css"));
 }
 
-async function release() {
-  var dist = paths.dist;
+async function release(dist) {
   new Promise((resolve) => {
     assets(resolve, dist);
   });
   await new Promise((resolve) => {
-    elmDebug(resolve, dist);
+    elmRelease(resolve, dist);
   });
   await new Promise((resolve) => {
     cssRelease(resolve, dist);
@@ -174,6 +178,7 @@ async function release() {
     indexRelease(resolve, dist);
   });
   delCss(dist);
+  log.info("Build successfully created");
 }
 
 function serve(tmp, host, port) {
@@ -210,6 +215,7 @@ async function copy(resolve, tmp) {
 }
 
 async function serving(tmp, host, port) {
+  fs.mkdirSync(tmp, {recursive: true});
   await new Promise((resolve) => {
     copy(resolve, tmp);
   });
@@ -217,6 +223,7 @@ async function serving(tmp, host, port) {
   await new Promise((resolve) => {
     watching(resolve, tmp);
   });
+  open(`http://localhost:${port}`);
 }
 
 function watching(cb, tmp) {
@@ -226,10 +233,6 @@ function watching(cb, tmp) {
   cb();
 }
 
-async function greet() {
-  log.info("Hello World!");
-};
 
-exports.default = greet;
 exports.build = release;
 exports.serve = serving;
