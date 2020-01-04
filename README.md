@@ -1,5 +1,13 @@
 # Elm Boil
 
+[![NPM version][npm-image]][npm-url]
+[![node version][node-image]][node-url]
+
+[npm-image]:  https://img.shields.io/npm/v/elm-boil.svg?style=flat-square
+[npm-url]:    https://www.npmjs.com/package/elm-boil
+[node-image]: https://img.shields.io/badge/node.js-%3E=_12.10.0-green.svg?style=flat-square
+[node-url]:   http://nodejs.org/download/
+
 Handle Elm Project with almost zero effort 🍲.
 - [Quickstart](#quickstart)
 - [Getting Started](#getting-started)
@@ -14,7 +22,7 @@ Handle Elm Project with almost zero effort 🍲.
 
 ```sh
   npm install -g elm-boil
-  elm-boil create my-elm-app
+  elm-boil init my-elm-app
   cd ./my-elm-app
   npm start
 ```
