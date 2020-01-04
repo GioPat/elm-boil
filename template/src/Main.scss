@@ -6,7 +6,7 @@ $primary-color: rgb(12, 102, 238);
 }
 
 #spinner {
-  width: "100%";
+  width: 100%;
   @-webkit-keyframes spinner {
     from { -webkit-transform: rotateY(0deg);    }
     to   { -webkit-transform: rotateY(-360deg); }
