@@ -39,7 +39,7 @@ const defaultIndexJs = `<!DOCTYPE HTML>
 </html>
 `
 require('yargs')
-  .command('create <projName>', 'new project', (yargs) => {
+  .command('init <projName>', 'creates a new project', (yargs) => {
     yargs
       .positional('projName', {
         describe: 'Project name to create',
@@ -82,7 +82,17 @@ function handleCreate(projName) {
   log.info(`Creating project: ${projName} in ${tmpPath}`);
   var projPath = path.join('./', projName);
   copy.copySync(templatePath, projPath);
-  log.info(`${projName} created successfully`);
+  fs.readFile(path.join(projPath, 'package.json'), 'utf8', function (err,data) {
+    if (err) {
+      return log.error(err);
+    }
+    var result = data.replace(/<projName>/g, projName);
+  
+    fs.writeFile(path.join(projPath, 'package.json'), result, 'utf8', function (err) {
+       if (err) return log.error(err);
+    });
+    log.info(`${projName} created successfully`);
+  });
 }
 
 /**
