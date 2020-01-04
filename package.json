@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "description": "Command Line Utility for creating a boilerplate Elm project easy to run, build and get deployed.",
   "main": "src/index.js",
+  "engineStrict": true,
+  "engines": {
+    "node": ">=12.10.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -27,13 +31,15 @@
     "gulp": "^4.0.2",
     "gulp-clean-css": "^4.2.0",
     "gulp-concat": "^2.6.1",
+    "gulp-connect": "^5.7.0",
     "gulp-elm": "^0.8.2",
     "gulp-hash": "^4.2.2",
     "gulp-inject": "^5.0.5",
     "gulp-plumber": "^1.2.1",
     "gulp-sass": "^4.0.2",
     "gulp-uglify": "^3.0.2",
-    "gulp-webserver": "^0.9.1",
+    "inquirer": "^7.0.1",
+    "st": "^2.0.0",
     "yargs": "^15.0.2"
   }
 }

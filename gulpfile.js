@@ -1,29 +1,25 @@
 var gulp = require("gulp");
 var sass = require("gulp-sass");
 var elm = require("gulp-elm");
-var uglify = require("gulp-uglifyjs");
-var argv = require("yargs").argv;
+var uglify = require("gulp-uglify");
 var Vinyl = require("vinyl");
 var inject = require("gulp-inject");
-var webserver = require("gulp-webserver");
 var concat = require("gulp-concat");
 var hash = require("gulp-hash");
 var cleanCss = require("gulp-clean-css"); 
 var del = require("del");
 var log = require("./src/utils/log");
-
+var connect = require("gulp-connect");
 var paths = {
   src: "src/**/*",
   srcHTML: "src/**/*.html",
   srcCSS: "src/**/*.css",
   srcSCSS: "src/**/*.scss",
   srcElm: "src/**/*.elm",  tmp: "tmp",
-  pubIndex: "tmp/index.html",
-  tmpCSS: "tmp/**/*.css",
-  tmpJS: "tmp/**/*.js",  dist: "dist",
-  distIndex: "dist/index.html",
-  distCSS: "dist/**/*.css",
-  distJS: "dist/**/*.js"
+  pubIndex: "public/index.html",
+  tmpCSS: "**/*.css",
+  tmpJS: "**/*.js",  dist: "dist",
+  assets: "assets/**/*",
 };
 
 function string_src(filename, string) {
@@ -35,40 +31,23 @@ function string_src(filename, string) {
   return src;
 }
 
-var indexJs = `<!DOCTYPE HTML>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <!-- <title>Main</title> -->
-    
-  <!-- inject:css -->
-  <!-- endinject -->
-  <!-- inject:js -->
-  <!-- endinject -->
-</head>
-
-<body>
-  <div id="elm"></div>
-  <script>
-  var app = Elm.Main.init({
-    node: document.getElementById("elm")
-  });
-  </script>
-</body>
-</html>
-`
+function assets(cb, dest) {
+  gulp.src(paths.assets)
+    .pipe(gulp.dest("./assets", {cwd: dest}))
+    .on("end", function() { cb(); });
+}
 
 function scssDebug(cb, tmp) {
   gulp.src(paths.srcSCSS)
     .pipe(sass().on("error", sass.logError))
-    .pipe(gulp.dest(tmp));
-  cb();
+    .pipe(gulp.dest(".", {cwd: tmp}))
+    .on("end", () => { cb(); });
 };
 
 function cssDebug(cb, tmp) {
   gulp.src(paths.srcCSS)
-    .pipe(gulp.dest(tmp));
-  cb();
+    .pipe(gulp.dest(".", {cwd: tmp}))
+    .on("end", () => { cb(); });
 };
 
 function cssRelease(cb, dist) {
@@ -87,7 +66,7 @@ function cssRelease(cb, dist) {
 function elmDebug(cb, tmp) {
   gulp.src(paths.srcElm)
     .pipe(elm.bundle("index.js", { filetype: "js", debug: true}))
-    .pipe(gulp.dest(tmp))
+    .pipe(gulp.dest(".", {cwd: tmp}))
     .on("end", function() {
       cb();
     });
@@ -140,13 +119,14 @@ function elmRelease(cb, dist) {
 }
 
 function indexDebug(cb, tmp) {
-  var css = gulp.src(paths.tmpCSS);
-  var js = gulp.src(paths.tmpJS);
-  string_src("index.html", indexJs)
-    .pipe(gulp.dest(tmp))
-    .pipe(inject(css, { relative: true } ))
-    .pipe(inject(js, { relative: true }))
-    .pipe(gulp.dest(tmp));
+  var css = gulp.src(paths.tmpCSS, {cwd: tmp});
+  var js = gulp.src(paths.tmpJS, {cwd: tmp});
+  gulp.src(paths.pubIndex)
+    .pipe(gulp.dest(".", {cwd: tmp}))
+    .pipe(inject(css, { relative: true, quiet: true } ))
+    .pipe(inject(js, { relative: true, quiet: true }))
+    .pipe(gulp.dest(".", {cwd: tmp}))
+    .pipe(connect.reload());
   cb();
 };
 
@@ -177,10 +157,12 @@ function delCss(dist) {
 }
 
 async function release() {
-  var dist = argv.directory || paths.dist;
-  
+  var dist = paths.dist;
+  new Promise((resolve) => {
+    assets(resolve, dist);
+  });
   await new Promise((resolve) => {
-    elmRelease(resolve, dist);
+    elmDebug(resolve, dist);
   });
   await new Promise((resolve) => {
     cssRelease(resolve, dist);
@@ -194,48 +176,53 @@ async function release() {
   delCss(dist);
 }
 
-function serve(cb, tmp, host, port) {
+function serve(tmp, host, port) {
   var host = host || "0.0.0.0";
   log.info(`Serving @ http://${host}:${port}`);
-  gulp.src(paths.tmp)
-    .pipe(webserver({
-      host: host,
-      port: port,
-      livereload: true
-    }))
-    .on("end", function() {
-      log.debug("Clearing temporary folder");
-      del(tmp, {froce: true});
-    });
-  cb();
+  connect.server({
+    host: host,
+    port: port,
+    silent: true,
+    root: tmp,
+    livereload: true
+  })
 }
 
 async function copy(resolve, tmp) {
-  await new Promise((resolve, _) => {
-    elmDebug(resolve, tmp);
-    scssDebug(resolve, tmp);
-    cssDebug(resolve, tmp);
-  });
-  await new Promise((resolve, _) => {
+  await Promise.all([
+    new Promise((resolve) => {
+      assets(resolve, tmp);
+    }),
+    new Promise((resolve) => {
+      scssDebug(resolve, tmp);
+    }),
+    new Promise((resolve) => {
+      cssDebug(resolve, tmp);
+    }),
+    new Promise((resolve) => {
+      elmDebug(resolve, tmp);
+    }),
+  ]);
+  await new Promise((resolve) => {
     indexDebug(resolve, tmp);
   });
   resolve();
 }
 
 async function serving(tmp, host, port) {
-  await new Promise((resolve, _) => {
+  await new Promise((resolve) => {
     copy(resolve, tmp);
   });
-  await new Promise((resolve, _) => {
-    serve(resolve, tmp, host, port);
-  });
-  await new Promise((resolve, _) => {
+  serve(tmp, host, port);
+  await new Promise((resolve) => {
     watching(resolve, tmp);
   });
 }
 
 function watching(cb, tmp) {
-  gulp.watch(paths.src, function() { copy(cb, tmp); });
+  gulp.watch(paths.src, (resolve) => {
+    copy(resolve, tmp);
+  });
   cb();
 }
 

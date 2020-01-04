@@ -1,28 +1,38 @@
 #!/usr/bin/env node
+
 var fs = require('fs');
 var log = require('./utils/log');
-// var gulpfunc = require('./../gulpfile');
 var copy = require('./utils/copy');
 var path = require('path');
+var gulpfunc = require('../gulpfile');
+var inquirer = require('inquirer');
+const IndexNotExistError = require('./utils/errors');
 
 var tmpPath      =path.join(__dirname, './../tmp/');
 var templatePath =path.join(__dirname, './../template');
 
-/**
- * @param {string} projName Project name.
- */
-function handleCreate(projName) {
-  log.info(`Creating project: ${projName} in ${tmpPath}`);
-  var projPath = path.join('./', projName);
-  copy.copySync(templatePath, projPath)
-}
- 
-function handleServe() {
-  var nowTimestamp = new Date().getTime().toString();
-  var servingPath = tmpPath + nowTimestamp;
-  fs.mkdirSync(servingPath);
-}
+const defaultIndexJs = `<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Elm App</title>
+  <link rel="shortcut icon" href="./assets/favicon.ico">
+  <!-- inject:css -->
+  <!-- endinject -->
+  <!-- inject:js -->
+  <!-- endinject -->
+</head>
 
+<body>
+  <div id="elm"></div>
+  <script>
+  var app = Elm.Main.init({
+    node: document.getElementById("elm")
+  });
+  </script>
+</body>
+</html>
+`
 require('yargs')
   .command('create <projName>', 'new project', (yargs) => {
     yargs
@@ -35,6 +45,102 @@ require('yargs')
     handleCreate(projName);
   })
   .command('serve', 'project', (yargs) => {
-    handleServe();
+    yargs
+      .option('host', {
+        alias: 'h',
+        default: '0.0.0.0',
+      })
+      .option('port', {
+        alias: 'p',
+        default: 3000
+      })
+  }, (argv) => {
+    handleServe(argv.host, argv.port);
   })
 .argv;
+
+
+/**
+ * Scaffold Elm project in a folder called projName
+ * @param {string} projName Project name.
+ */
+function handleCreate(projName) {
+  log.info(`Creating project: ${projName} in ${tmpPath}`);
+  var projPath = path.join('./', projName);
+  copy.copySync(templatePath, projPath);
+  log.info(`${projName} created successfully`);
+}
+
+/**
+ * Checks the source project that needs to be served.
+ */
+function checkBoiledElm() {
+  var sourcePath = process.cwd();
+  if(!fs.existsSync(path.join(sourcePath, "public"))) {
+    throw new Error("Public folder is missing, make sure to serve a elm-boiled folder");
+  }
+  if(!fs.existsSync(path.join(sourcePath, "public", "index.html"))) {
+    throw new IndexNotExistError("public/index.html template is missing, elm-boil project corrupted");
+  }
+  if(!fs.existsSync(path.join(sourcePath, "assets"))) {
+    log.warn("./assets folder is missing");
+  }
+}
+
+
+/**
+ * Serves an Elm boiled project in the current working directory for a development
+ * environment
+ * @param {string} [host="0.0.0.0"] 
+ * @param {int} [port=3000]
+ */
+function handleServe(host, port) {
+  var host = host || "0.0.0.0";
+  var port = port || 3000;
+  var nowTimestamp = new Date().getTime().toString();
+  var servingPath = tmpPath + nowTimestamp;
+  fs.readdirSync(tmpPath, { withFileTypes: true})
+    .filter(dirent => dirent.isDirectory())
+    .map((dirent) => {
+      fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
+    });
+  try {
+    checkBoiledElm();
+    fs.mkdirSync(servingPath, {recursive: true});
+    gulpfunc.serve(servingPath, host, port);
+  }
+  catch(error) {
+    if(error.name === "IndexNotExistsError") {
+      log.warn(error.message);
+      inquirer.prompt([
+        {
+          type: 'confirm',
+          message: 'Index not found, do you want to create a default one?',
+          name: 'createIndex'
+        }
+      ])
+      .then(answer => {
+        if(answer.createIndex) {
+          fs.writeFileSync(
+            path.join(process.cwd(), 'public', 'index.html'),
+            defaultIndexJs,
+            {
+              encoding: 'utf-8'
+            }
+          )
+          log.info("Index file created successfully");
+          fs.mkdirSync(servingPath, {recursive: true});
+          gulpfunc.serve(servingPath, host, port);
+        } else {
+          log.error("Project cannot be served without public/index.html file");
+          return;
+        }
+      })
+    } else {
+      log.error(error.message);
+      return;
+    }
+  }
+}
+
+
