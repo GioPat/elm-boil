@@ -14,15 +14,15 @@ module Main exposing (main)
 -- We're importing the Html module the text value available in our file, so we
 -- can just reference it if we want.
 
-import Html exposing (text, div, img)
-import Html.Attributes exposing (src, width, height)
-import AppEnv exposing (..)
+import Html exposing (Html, div, h1, text, img)
+import Html.Attributes exposing (src, width, height, class, id)
+import AppEnv exposing (appName)
 
 
 -- The main value manages what gets displayed on the page.
-
+main : Html msg
 main =
   div [] [
-      text ("Your " ++ appName ++ " is working!"),
-      img [ src "./../assets/elm-logo.svg", width 300, height 300] []
+      h1 [ class "main-header" ] [ text ("Your " ++ appName ++ " is working great!") ],
+      img [ id "spinner", src "./assets/elm-logo.svg", width 300, height 300] []
     ]
