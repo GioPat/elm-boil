@@ -1,0 +1,17 @@
+
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Do not choose a language; we provide our own build tools.
+language: elm
+
+install:
+# Build dependencies
+- npm install -g elm-boil
+
+script:
+# Build the package, its tests, and its docs and run the tests
+- elm-boil init my-elm-app
+- cd my-elm-app
+- npm run build
+- npm start
