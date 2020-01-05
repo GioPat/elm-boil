@@ -2,11 +2,14 @@
 
 [![NPM version][npm-image]][npm-url]
 [![node version][node-image]][node-url]
+[![Build Status][travis-image]][travis-url]
 
-[npm-image]:  https://img.shields.io/npm/v/elm-boil.svg?style=flat-square
-[npm-url]:    https://www.npmjs.com/package/elm-boil
-[node-image]: https://img.shields.io/badge/node.js-%3E=_12.10.0-green.svg?style=flat-square
-[node-url]:   http://nodejs.org/download/
+[npm-image]:    https://img.shields.io/npm/v/elm-boil.svg?style=flat-square
+[npm-url]:      https://www.npmjs.com/package/elm-boil
+[node-image]:   https://img.shields.io/badge/node.js-%3E=_12.10.0-green.svg?style=flat-square
+[node-url]:     http://nodejs.org/download/
+[travis-image]: https://travis-ci.org/GioPat/elm-boil.svg?branch=master
+[travis-url]:   https://travis-ci.org/GioPat/elm-boil
 
 Handle Elm Project with almost zero effort 🍲.
 - [Quickstart](#quickstart)
