@@ -1,6 +1,6 @@
 {
   "name": "elm-boil",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Command Line Utility for creating a boilerplate Elm project easy to run, build and get deployed.",
   "main": "src/index.js",
   "engineStrict": true,
