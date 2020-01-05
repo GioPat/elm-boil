@@ -177,12 +177,13 @@ function handleServe(host, port) {
   var port = port || 3000;
   var nowTimestamp = new Date().getTime().toString();
   var servingPath = tmpPath + nowTimestamp;
-  fs.readdirSync(tmpPath, { withFileTypes: true})
-    .filter(dirent => dirent.isDirectory())
-    .map((dirent) => {
-      fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
-    });
-  
+  if (fs.existsSync(tmpPath)) {
+    fs.readdirSync(tmpPath, { withFileTypes: true})
+      .filter(dirent => dirent.isDirectory())
+      .map((dirent) => {
+        fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
+      });
+  }
   perform(Operations.SERVE, servingPath, host, port);
   return;
 }
