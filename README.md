@@ -18,10 +18,10 @@ Handle Elm Project with almost zero effort 🍲.
 - [Why do I chose elm-boil?](#why-do-i-chose-elm-boil)
 
 ## Quickstart
-**Node >= 12.10.0**
+**Node >= 12.10.0 + Elm >= 0.19.0**
 
 ```sh
-  npm install -g elm-boil
+  npm install -g elm elm-boil
   elm-boil init my-elm-app
   cd ./my-elm-app
   npm start
