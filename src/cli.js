@@ -3,6 +3,7 @@
 var fs = require('fs');
 var log = require('./utils/log');
 var copy = require('./utils/copy');
+var templates = require('./utils/templates');
 var path = require('path');
 var gulpfunc = require('../gulpfile');
 var inquirer = require('inquirer');
@@ -16,28 +17,6 @@ const Operations = {
   BUILD: "build",
 };
 
-const defaultIndexJs = `<!DOCTYPE HTML>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Elm App</title>
-  <link rel="shortcut icon" href="./assets/favicon.ico">
-  <!-- inject:css -->
-  <!-- endinject -->
-  <!-- inject:js -->
-  <!-- endinject -->
-</head>
-
-<body>
-  <div id="elm"></div>
-  <script>
-  var app = Elm.Main.init({
-    node: document.getElementById("elm")
-  });
-  </script>
-</body>
-</html>
-`
 require('yargs')
   .command('init <projName>', 'creates a new project', (yargs) => {
     yargs
@@ -79,7 +58,7 @@ require('yargs')
  * @param {string} projName Project name.
  */
 function handleCreate(projName) {
-  log.info(`Creating project: ${projName} in ${tmpPath}`);
+  log.info(`Creating project: ${projName}`);
   var projPath = path.join('./', projName);
   copy.copySync(templatePath, projPath);
   fs.readFile(path.join(projPath, 'package.json'), 'utf8', function (err,data) {
@@ -90,8 +69,9 @@ function handleCreate(projName) {
   
     fs.writeFile(path.join(projPath, 'package.json'), result, 'utf8', function (err) {
        if (err) return log.error(err);
+       fs.writeFileSync(path.join(projPath, '.gitignore'), templates.gitignore);
+       log.info(`${projName} created successfully`);
     });
-    log.info(`${projName} created successfully`);
   });
 }
 
@@ -143,7 +123,7 @@ function perform(operation, path, host, port) {
         if(answer.createIndex) {
           fs.writeFileSync(
             path.join(process.cwd(), 'public', 'index.html'),
-            defaultIndexJs,
+            templates.defaultIndexJs,
             {
               encoding: 'utf-8'
             }
