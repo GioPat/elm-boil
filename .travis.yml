@@ -5,7 +5,11 @@ sudo: false
 # Do not choose a language; we provide our own build tools.
 language: elm
 
+node_js:
+  - 12
+
 install:
+
 # Build dependencies
 - npm install -g elm-boil
 
