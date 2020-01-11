@@ -21,6 +21,7 @@ Handle Elm Project with almost zero effort 🍲.
 - [Why do I chose elm-boil?](#why-do-i-chose-elm-boil)
 
 ## Quickstart
+
 **Node >= 12.10.0**
 
 ```sh
