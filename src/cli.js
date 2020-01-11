@@ -7,6 +7,7 @@ var templates = require('./utils/templates');
 var path = require('path');
 var gulpfunc = require('../gulpfile');
 var inquirer = require('inquirer');
+var exec = require('child_process').exec;
 const IndexNotExistError = require('./utils/errors');
 
 var tmpPath      =path.join(__dirname, './../tmp/');
@@ -52,27 +53,87 @@ require('yargs')
   })
 .argv;
 
+/**
+ * Asks the user for npm elm installation if answer is Yes performs a npm elm installation
+ * @returns {Promise<string>} Elm installation promise with installed elm version
+ */
+function _askAndInstallElm() {
+  return new Promise((resolve, reject) => {
+    inquirer.prompt([
+      {
+        type: 'confirm',
+        message: `It seems that elm is not installed on your machine, do you want to install globally with npm?`,
+        name: 'installElm'
+      }
+    ])
+      .then(answer => {
+        if(answer.installElm) {
+          log.info("Installing elm with \"npm install -g elm\"");
+          exec("npm install -g elm", (_, __, stderr) => {
+            if(stderr) {
+              reject(new Error(stderr));
+            }
+            exec("elm --version", (_, stdout, stderr) => {
+              if(stderr) {
+                reject(new Error(stderr));
+              }
+              const version = stdout.replace(/(\r\n|\n|\r)/gm, "");
+              log.info(`Elm ${version} successfully installed`);
+              resolve(version)
+            })
+          })
+        } else {
+          const msg = `Can't use elm-boil without elm :-/, install it with your tools and try again!`;
+          reject(new Error(msg));
+        }
+      })
+      .catch(err => {
+        reject(err);
+      })
+  })
+}
+
 
 /**
  * Scaffold Elm project in a folder called projName
  * @param {string} projName Project name.
  */
-function handleCreate(projName) {
+async function handleCreate(projName) {
   log.info(`Creating project: ${projName}`);
   var projPath = path.join('./', projName);
-  copy.copySync(templatePath, projPath);
-  fs.readFile(path.join(projPath, 'package.json'), 'utf8', function (err,data) {
-    if (err) {
-      return log.error(err);
-    }
-    var result = data.replace(/<projName>/g, projName);
-  
-    fs.writeFile(path.join(projPath, 'package.json'), result, 'utf8', function (err) {
-       if (err) return log.error(err);
-       fs.writeFileSync(path.join(projPath, '.gitignore'), templates.gitignore);
-       log.info(`${projName} created successfully`);
-    });
-  });
+  try {
+    const elmVersion = await (
+      new Promise((resolve, _) => {
+        exec("elm --version", async (_, stdout, stderr) => {
+          var version = stdout;
+          if(stderr) {
+            try {
+              version = await _askAndInstallElm();
+            } catch(err) {
+              reject(err);
+            }
+          }
+          version = version.replace(/(\r\n|\n|\r)/gm, "")
+          resolve(version);
+        })
+      }
+    ));
+    copy.copySync(templatePath, projPath);
+    var npmPackage = fs
+      .readFileSync(path.join(projPath, 'package.json'), 'utf8')
+      .replace(/<projName>/g, projName);
+    fs.writeFileSync(path.join(projPath, 'package.json'), npmPackage, 'utf8');
+    fs.writeFileSync(path.join(projPath, '.gitignore'), templates.gitignore);
+    var elmJson = fs
+      .readFileSync(path.join(projPath, 'elm.json'), 'utf8')
+      .replace(/<elmVersion>/g, elmVersion);
+    fs.writeFileSync(path.join(projPath, 'elm.json'), elmJson, 'utf8');
+    log.info(`${projName} created successfully`);
+  }
+  catch(err) {
+    log.error(err);
+    return;
+  }
 }
 
 /**
