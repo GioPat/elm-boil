@@ -25,7 +25,7 @@ Handle Elm Project with almost zero effort 🍲.
 **Node >= 12.10.0**
 
 ```sh
-  npm install -g elm elm-boil
+  npm install -g elm-boil
   elm-boil init my-elm-app
   cd ./my-elm-app
   npm start
