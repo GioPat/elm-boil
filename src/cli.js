@@ -18,6 +18,11 @@ const Operations = {
   BUILD: "build",
 };
 
+/**
+ * Serving Path of the project
+ */
+var servingPath = undefined;
+
 require('yargs')
   .command('init <projName>', 'creates a new project', (yargs) => {
     yargs
@@ -217,14 +222,7 @@ function handleServe(host, port) {
   var host = host || "0.0.0.0";
   var port = port || 3000;
   var nowTimestamp = new Date().getTime().toString();
-  var servingPath = tmpPath + nowTimestamp;
-  if (fs.existsSync(tmpPath)) {
-    fs.readdirSync(tmpPath, { withFileTypes: true})
-      .filter(dirent => dirent.isDirectory())
-      .map((dirent) => {
-        fs.rmdirSync(path.join(tmpPath, dirent.name), {recursive: true});
-      });
-  }
+  servingPath = tmpPath + nowTimestamp;
   perform(Operations.SERVE, servingPath, host, port);
   return;
 }
@@ -238,3 +236,10 @@ function handleBuild(outputDir) {
   perform(Operations.BUILD, outputDir);
 }
 
+
+// TODO: For any issue with windows:
+// Follow https://stackoverflow.com/questions/10021373/what-is-the-windows-equivalent-of-process-onsigint-in-node-js 
+process.on("SIGINT", function () {
+  fs.rmdirSync(servingPath, { recursive: true });
+  process.exit();
+});
