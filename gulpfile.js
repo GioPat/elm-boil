@@ -13,15 +13,17 @@ var path = require('path');
 var log = require("./src/utils/log");
 var connect = require("gulp-connect");
 var paths = {
-  src: "src/**/*",
-  srcHTML: "src/**/*.html",
-  srcCSS: "src/**/*.css",
-  srcSCSS: "src/**/*.scss",
-  srcElm: "src/**/*.elm",  tmp: "tmp",
+  src:      "src/**/*",
+  srcHTML:  "src/**/*.html",
+  srcCSS:   "src/**/*.css",
+  srcSCSS:  "src/**/*.scss",
+  mainElm:  "src/Main.elm",
+  envElm:   "env/**/*.elm",
+  srcElm:   "src/**/*.elm",  tmp: "tmp",
   pubIndex: "public/index.html",
-  tmpCSS: "**/*.css",
-  tmpJS: "**/*.js",  dist: "dist",
-  assets: "assets/**/*",
+  tmpCSS:   "**/*.css",
+  tmpJS:    "**/*.js",  dist: "dist",
+  assets:   "assets/**/*",
 };
 
 function string_src(filename, string) {
@@ -66,7 +68,7 @@ function cssRelease(cb, dist) {
 };
 
 function elmDebug(cb, tmp) {
-  gulp.src(paths.srcElm)
+  gulp.src(paths.mainElm)
     .pipe(elm.bundle("index.js", { filetype: "js", debug: true}))
     .pipe(gulp.dest(".", {cwd: tmp}))
     .on("end", function() {
@@ -75,7 +77,7 @@ function elmDebug(cb, tmp) {
 };
 
 function elmRelease(cb, dist) {
-  gulp.src(paths.srcElm)
+  gulp.src(paths.mainElm)
     .pipe(elm.bundle("script.min.js", { optimize: true }))
     .pipe(
       uglify({
@@ -190,7 +192,7 @@ function serve(tmp, host, port) {
     silent: true,
     root: tmp,
     livereload: true
-  })
+  });
 }
 
 async function copy(resolve, tmp) {
@@ -221,13 +223,16 @@ async function serving(tmp, host, port) {
   });
   serve(tmp, host, port);
   await new Promise((resolve) => {
-    watching(resolve, tmp);
+    watching(resolve, tmp, host, port);
   });
   open(`http://localhost:${port}`);
 }
 
-function watching(cb, tmp) {
-  gulp.watch(paths.src, (resolve) => {
+function watching(cb, tmp, host, port) {
+  gulp.watch([paths.srcElm, paths.envElm, paths.srcSCSS, paths.srcCSS], (resolve) => {
+    console.clear();
+    log.info("Changes dected");
+    log.info(`Reloaded @ http://${host}:${port}`);
     copy(resolve, tmp);
   });
   cb();
