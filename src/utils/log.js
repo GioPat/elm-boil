@@ -32,7 +32,7 @@ function log(message, level) {
   if (color === undefined) {
     color = bColors.UNDERLINE;
   }
-  console.log(`${color}[${formatDate(now)}][${level}]    ${message}${bColors.ENDC}`);
+  console.log(`${color}[${formatDate(now)}][${level}]\t${message}${bColors.ENDC}`);
 }
 
 module.exports.info = function info(message) {

@@ -67,12 +67,16 @@ function cssRelease(cb, dist) {
     .on("end", function() { cb(); });
 };
 
-function elmDebug(cb, tmp) {
+function elmDebug(res, rej, tmp) {
   gulp.src(paths.mainElm)
     .pipe(elm.bundle("index.js", { filetype: "js", debug: true}))
+    .on("error", function(err) {
+      log.error("Error encountered while compiling Elm, see browser for details.");
+      rej(err);
+    })
     .pipe(gulp.dest(".", {cwd: tmp}))
     .on("end", function() {
-      cb();
+      res();
     });
 };
 
@@ -135,6 +139,14 @@ function indexDebug(cb, tmp) {
   cb();
 };
 
+function indexError(cb, tmp, content) {
+  const htmlContent = templates.errorIndex.replace("{error_content}", content);
+  string_src("index.html", htmlContent)
+    .pipe(gulp.dest(".", { cwd: tmp}))
+    .pipe(connect.reload())
+    .on("end", function() { cb(); })
+}
+
 function indexRelease(cb, dist) {
   var distCss = dist + "/**/*.css";
   var distJs = dist + "/**/*.js";
@@ -196,23 +208,29 @@ function serve(tmp, host, port) {
 }
 
 async function copy(resolve, tmp) {
-  await Promise.all([
-    new Promise((resolve) => {
-      assets(resolve, tmp);
-    }),
-    new Promise((resolve) => {
-      scssDebug(resolve, tmp);
-    }),
-    new Promise((resolve) => {
-      cssDebug(resolve, tmp);
-    }),
-    new Promise((resolve) => {
-      elmDebug(resolve, tmp);
-    }),
-  ]);
-  await new Promise((resolve) => {
-    indexDebug(resolve, tmp);
-  });
+  try {
+    await Promise.all([
+      new Promise((resolve) => {
+        assets(resolve, tmp);
+      }),
+      new Promise((resolve) => {
+        scssDebug(resolve, tmp);
+      }),
+      new Promise((resolve) => {
+        cssDebug(resolve, tmp);
+      }),
+      new Promise((resolve, reject) => {
+        elmDebug(resolve, reject, tmp);
+      }),
+    ]);
+    await new Promise((resolve) => {
+      indexDebug(resolve, tmp);
+    });
+  } catch (e) {
+    await new Promise((resolve) => {
+      indexError(resolve, tmp, e.message.replace(/\n/g, "<br />"));
+    });
+  }
   resolve();
 }
 

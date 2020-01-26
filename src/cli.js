@@ -189,7 +189,7 @@ function perform(operation, path, host, port) {
         if(answer.createIndex) {
           fs.writeFileSync(
             path.join(process.cwd(), 'public', 'index.html'),
-            templates.defaultIndexJs,
+            templates.defaultIndex,
             {
               encoding: 'utf-8'
             }
@@ -218,9 +218,7 @@ function perform(operation, path, host, port) {
  * @param {string} [host="0.0.0.0"] 
  * @param {int} [port=3000]
  */
-function handleServe(host, port) {
-  var host = host || "0.0.0.0";
-  var port = port || 3000;
+function handleServe(host="0.0.0.0", port=3000) {
   var nowTimestamp = new Date().getTime().toString();
   servingPath = tmpPath + nowTimestamp;
   perform(Operations.SERVE, servingPath, host, port);
@@ -231,7 +229,7 @@ function handleServe(host, port) {
  * Creates an optimized Elm build in the specified directory
  * @param {string} [outputDir="dist"]
  */
-function handleBuild(outputDir) {
+function handleBuild(outputDir="dist") {
   log.info("Building project in ./" + outputDir);
   perform(Operations.BUILD, outputDir);
 }
