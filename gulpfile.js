@@ -12,6 +12,8 @@ var fs = require("fs");
 var path = require('path');
 var log = require("./src/utils/log");
 var connect = require("gulp-connect");
+var templates = require('./src/utils/templates');
+
 var paths = {
   src:      "src/**/*",
   srcHTML:  "src/**/*.html",
@@ -132,8 +134,8 @@ function indexDebug(cb, tmp) {
   var js = gulp.src(paths.tmpJS, {cwd: tmp});
   gulp.src(paths.pubIndex)
     .pipe(gulp.dest(".", {cwd: tmp}))
-    .pipe(inject(css, { relative: true, quiet: true } ))
-    .pipe(inject(js, { relative: true, quiet: true }))
+    .pipe(inject(css, { quiet: true } ))
+    .pipe(inject(js, { quiet: true }))
     .pipe(gulp.dest(".", {cwd: tmp}))
     .pipe(connect.reload());
   cb();
@@ -203,7 +205,8 @@ function serve(tmp, host, port) {
     port: port,
     silent: true,
     root: tmp,
-    livereload: true
+    livereload: true,
+    fallback: path.join(tmp, "index.html")
   });
 }
 
